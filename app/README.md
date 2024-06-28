@@ -1,3 +1,16 @@
+### AI Co-Creator Frontend
+
+## Overview
+
+This project is a voice assistant application built with React and integrated with Electron for desktop deployment.
+
+### Main Process and Renderer Process (in Electron, parent directory)
+
+- **Main Process**: The main process of the Electron application loads the React app. It manages the lifecycle of the application and creates the `BrowserWindow` instances.
+- **Renderer Process**: Each `BrowserWindow` instance runs its own renderer process. This process paints the application onto the desktop by rendering the React app, handling all UI interactions and updates.
+
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

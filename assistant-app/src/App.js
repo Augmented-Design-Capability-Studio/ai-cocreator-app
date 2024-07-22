@@ -1,12 +1,10 @@
-import './App.css';
-import VoiceAssistant from './components/VoiceAssistant';
-
+import React from 'react';
+import VoiceAssistant from './VoiceAssistant';
 
 function App() {
   return (
-    <div className="App">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <VoiceAssistant />
-
     </div>
   );
 }

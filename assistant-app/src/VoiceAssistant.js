@@ -1,20 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
-import ChatHistory from './ChatHistory';
 
 const socket = io('http://localhost:3001'); // Adjust the URL as needed
 
+const STATES = {
+  SLEEPING: 'sleeping',
+  LISTENING: 'listening',
+  PROCESSING: 'processing',
+  RESPONDING: 'responding',
+};
+
 export default function VoiceAssistant() {
-  const [isRecording, setIsRecording] = useState(false);
+  const [state, setState] = useState(STATES.SLEEPING);
   const [audioBlob, setAudioBlob] = useState(null);
-  const [chatHistory, setChatHistory] = useState([]);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
   useEffect(() => {
     socket.on('responseSent', (data) => {
-      setChatHistory((prevHistory) => [...prevHistory, { text: data.response, user: 'assistant' }]);
+      console.log('Response received from server:', data.response);
+      setState(STATES.RESPONDING);
+      // handle the response if needed
+      setState(STATES.SLEEPING);
     });
 
     return () => {
@@ -22,8 +30,15 @@ export default function VoiceAssistant() {
     };
   }, []);
 
+  useEffect(() => {
+    if (state === STATES.LISTENING) {
+      startRecording();
+    } else if (state === STATES.PROCESSING && audioBlob) {
+      sendAudioToServer();
+    }
+  }, [state, audioBlob]);
+
   const startRecording = async () => {
-    setIsRecording(true);
     audioChunksRef.current = [];
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorderRef.current = new MediaRecorder(stream);
@@ -37,23 +52,16 @@ export default function VoiceAssistant() {
     mediaRecorderRef.current.onstop = () => {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       setAudioBlob(audioBlob);
+      setState(STATES.PROCESSING);
     };
 
     mediaRecorderRef.current.start();
-  };
 
-  const stopRecording = () => {
-    setIsRecording(false);
-    if (mediaRecorderRef.current) {
+    setTimeout(() => {
       mediaRecorderRef.current.stop();
-    }
+      setState(STATES.PROCESSING);
+    }, 5000); // Record for 5 seconds
   };
-
-  useEffect(() => {
-    if (audioBlob) {
-      sendAudioToServer();
-    }
-  }, [audioBlob]);
 
   const sendAudioToServer = async () => {
     const formData = new FormData();
@@ -65,27 +73,43 @@ export default function VoiceAssistant() {
         body: formData,
       });
       const data = await response.json();
-      setChatHistory((prevHistory) => [...prevHistory, { text: data.transcription, user: 'user' }]);
       socket.emit('sendResponse', { response: data.transcription });
-      console.log(data);
     } catch (error) {
       console.error('Error:', error);
+    } finally {
+      setState(STATES.SLEEPING);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-      <div className="mb-4">
-        <ChatHistory chatHistory={chatHistory} />
-      </div>
-      <div className="flex justify-center">
-        <button
-          onClick={isRecording ? stopRecording : startRecording}
-          className={`h-10 w-32 rounded-full ${isRecording ? 'bg-red-500' : 'bg-green-500'} text-white font-bold`}
-        >
-          {isRecording ? 'Stop' : 'Start'}
-        </button>
-      </div>
+    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md flex flex-col items-center">
+      <AssistantStateIndicator state={state} />
+      <button
+        onClick={() => setState(STATES.LISTENING)}
+        className="mt-4 h-10 w-32 rounded-full bg-green-500 text-white font-bold"
+      >
+        Start Listening
+      </button>
     </div>
   );
 }
+
+const AssistantStateIndicator = ({ state }) => {
+  let content;
+  switch (state) {
+    case STATES.LISTENING:
+      content = 'Listening...';
+      break;
+    case STATES.PROCESSING:
+      content = 'Processing...';
+      break;
+    case STATES.RESPONDING:
+      content = 'Responding...';
+      break;
+    case STATES.SLEEPING:
+    default:
+      content = 'Sleeping...';
+      break;
+  }
+  return <div className="text-lg font-bold">{content}</div>;
+};

@@ -2,7 +2,6 @@
 import fs from 'fs';
 import express from 'express';
 import cors from 'cors'
-import bodyParser from 'body-parser';
 import multer from 'multer';
 import OpenAI from 'openai';
 import { config } from 'dotenv';
@@ -13,7 +12,7 @@ const app = express();
 const PORT = 3001; // or any port you prefer
 const openai = new OpenAI({ apiKey: process.env.OPEN_AI_KEY })
 
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(cors());
 
 // Multer configuration to save files with correct extension

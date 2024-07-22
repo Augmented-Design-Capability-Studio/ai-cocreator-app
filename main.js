@@ -17,9 +17,9 @@ function createWindow() {
 
   const isDev = true;
   if (isDev) {
-    win.loadURL('http://localhost:3000'); // Load React dev server in development
+    mainWindow.loadURL('http://localhost:3000'); // Load React dev server in development
   } else {
-    win.loadFile(path.join(__dirname, 'build', 'index.html')); // Load static files in production
+    mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')); // Load static files in production
   }
   mainWindow.on('closed', function () {
     mainWindow = null;
